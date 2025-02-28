@@ -1,8 +1,0 @@
-/work/src/build/CMakeFiles/clean-all.dir
-/work/src/build/CMakeFiles/edit_cache.dir
-/work/src/build/CMakeFiles/rebuild_cache.dir
-/work/src/build/cv/CMakeFiles/edit_cache.dir
-/work/src/build/cv/CMakeFiles/rebuild_cache.dir
-/work/src/build/cv/task1/CMakeFiles/cvtask1.dir
-/work/src/build/cv/task1/CMakeFiles/edit_cache.dir
-/work/src/build/cv/task1/CMakeFiles/rebuild_cache.dir
