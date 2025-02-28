@@ -1,0 +1,14 @@
+{
+    "testcases": [
+        {
+            "name": "crack2",
+            "image_1_path": "data/input/crack2-1.jpg",
+            "image_2_path": "data/input/crack2-2.jpg",
+            "kernel_size_gauss": 5,
+            "sigma_gauss": 10.5,
+            "canny_lower": 55,
+            "canny_upper": 60,
+            "kernel_size_morph": 35
+        }
+    ]
+}

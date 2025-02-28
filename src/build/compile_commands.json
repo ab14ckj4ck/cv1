@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/work/src/build/cv/task1",
+  "command": "/usr/bin/c++ -DFINAL_RUN=0 -DFULL_VERSION=1 -DGENERATE_REF=0 -I/software/opencv/include -I/work/src/cgcvcommon -isystem /usr/include/opencv4  -std=c++17 -pthread -g -o CMakeFiles/cvtask1.dir/algorithms.cpp.o -c /work/src/cv/task1/algorithms.cpp",
+  "file": "/work/src/cv/task1/algorithms.cpp"
+},
+{
+  "directory": "/work/src/build/cv/task1",
+  "command": "/usr/bin/c++ -DFINAL_RUN=0 -DFULL_VERSION=1 -DGENERATE_REF=0 -I/software/opencv/include -I/work/src/cgcvcommon -isystem /usr/include/opencv4  -std=c++17 -pthread -g -o CMakeFiles/cvtask1.dir/main.cpp.o -c /work/src/cv/task1/main.cpp",
+  "file": "/work/src/cv/task1/main.cpp"
+}
+]

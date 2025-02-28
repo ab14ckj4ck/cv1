@@ -1,0 +1,39 @@
+image: ${CI_REGISTRY}/icg-docker/cv-test-system
+
+stages:
+  - build
+  - test
+
+linux-build-task1:
+  stage: build
+  timeout: 7m
+  script:
+    - cd src/
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_BUILD_TYPE=Release ../  && make
+  tags:
+    - docker,shared
+  #  only:
+  #    - submission
+  artifacts:
+    paths:
+      - src/build/cv/task1/cvtask1
+    expire_in: 2 h
+
+linux-test-task1:
+  stage: test
+  timeout: 7m
+  script:
+    - cd src/cv/task1
+    - for f in tests/*.json; do ../../build/cv/task1/cvtask1 $f; done
+    - bash ./test_all_x64.sh --no-error
+  tags:
+    - docker,shared
+  #  only:
+  #    - submission
+  artifacts:
+    paths:
+      - src/cv/task1/output/**/*.png
+      - src/cv/task1/dif/**/*.png
+    expire_in: 2 d
