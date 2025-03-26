@@ -14,8 +14,8 @@ linux-build-task1:
     - cmake -DCMAKE_BUILD_TYPE=Release ../  && make
   tags:
     - docker,shared
-  only:
-    - submission
+  #  only:
+  #    - submission
   artifacts:
     paths:
       - src/build/cv/task1/cvtask1
@@ -30,8 +30,8 @@ linux-test-task1:
     - bash ./test_all_x64.sh --no-error
   tags:
     - docker,shared
-  only:
-    - submission
+  #  only:
+  #    - submission
   artifacts:
     paths:
       - src/cv/task1/output/**/*.png
