@@ -18,6 +18,24 @@
 //========================================================================================
 void algorithms::compute_grayscale(const cv::Mat &input_image, cv::Mat &grayscale_image)
 {
+    using namespace cv;
+    constexpr double R_FAC = 0.2989;
+    constexpr double G_FAC = 0.5870;
+    constexpr double B_FAC = 0.1140;
+
+    grayscale_image = Mat(input_image.rows, input_image.cols, CV_8UC1);
+
+    for (int row = 0; row < input_image.rows; ++row) {
+        for (int col = 0; col < input_image.cols; ++col) {
+            uchar const b = input_image.at<Vec3b>(row, col)[0];
+            uchar const g = input_image.at<Vec3b>(row, col)[1];
+            uchar const r = input_image.at<Vec3b>(row, col)[2];
+
+            const auto grey = R_FAC * r + G_FAC * g + B_FAC * b;
+
+            grayscale_image.at<uchar>(row, col) = static_cast<uchar>(grey);
+        }
+    }
 }
 
 
