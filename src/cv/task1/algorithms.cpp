@@ -140,10 +140,9 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
     log_transform.convertTo(input_image, CV_32FC1);
 
     Mat bordered_image;
-    copyMakeBorder(input_image, bordered_image, radius, radius, radius, radius, BORDER_REFLECT);
+    copyMakeBorder(input_image, bordered_image, radius, radius, radius, radius, BORDER_REFLECT_101);
 
-    Mat output_image;
-    input_image.copyTo(output_image);
+    Mat output_image = Mat::zeros(input_image.size(), CV_32FC1);
 
 
     for (int m = 0; m < log_transform.rows; m++) {
@@ -175,15 +174,17 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                     const float r_exp = exp(-r_in_brackets);
 
                     w_mn += g_exp * r_exp;
-                    grf_sum += g_exp * r_exp * f_kl;
+                    grf_sum += g_exp * r_exp * f_kl_float;
                 }
             }
-            if (const float h_mn = (1 / w_mn) * grf_sum; h_mn > 0) {
-                output_image.at<float>(m, n) = h_mn;
+            if (w_mn > 0) {
+                output_image.at<float>(m, n) = (1.f / w_mn) * grf_sum - 0.5f;
+            } else {
+                output_image.at<float>(m, n) = static_cast<float>(f_mn) - 0.5f;
             }
+
         }
     }
-    output_image -= 0.5f;
     output_image.convertTo(filtered_image, CV_8UC1);
 }
 
