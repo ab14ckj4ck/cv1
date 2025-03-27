@@ -88,6 +88,25 @@ void algorithms::gaussian_blur(const cv::Mat &input_image, const int &kernel_siz
 //========================================================================================
 void algorithms::compute_log_transform(const cv::Mat &blurred_image, cv::Mat &log_transform)
 {
+    using namespace cv;
+
+    Mat x;
+    blurred_image.convertTo(x, CV_32FC1);
+
+    Mat log_x;
+    log(x + 1.0f, log_x);
+
+    double min;
+    double max;
+
+    minMaxIdx(blurred_image, &min, &max);
+
+    Mat log_max;
+    log(1.0f + max, log_max);
+
+    const Mat y_of_x = (log_x / log_max) * 255.0f;
+    y_of_x.convertTo(log_transform, CV_8UC1);
+
 }
 
 
