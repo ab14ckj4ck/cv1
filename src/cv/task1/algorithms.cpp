@@ -350,7 +350,6 @@ void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &tra
 //          the total distance
 //        - identify the position of img2 with the minimum overall distance;
 //          store the according distance matrix in minimal_distances
-
 //        - create a white mask at the position of img1 (mask_img1)
 //        - create a white mask at the position of img2 (mask_img2)
 //
@@ -372,6 +371,64 @@ void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &tra
 //========================================================================================
 void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &matching_frame, const int step,
                               cv::Mat &minimal_distances, cv::Mat &mask_img1, cv::Mat &mask_img2) {
+    using namespace cv;
+
+    const int start_x_img1 = img2.cols / 2;
+    const int start_y_img1 = img2.rows / 2;
+
+    const int max_frame_x = matching_frame.cols - img2.cols;
+    const int max_frame_y = matching_frame.rows - img2.rows;
+
+    const Rect img_1_rect(start_x_img1, start_y_img1, img1.cols, img1.rows);
+    img1.copyTo(matching_frame(img_1_rect));
+
+    Mat img1_transform;
+    L2_distance_transform(matching_frame, img1_transform);
+
+    mask_img1.setTo(0);
+    mask_img1(img_1_rect).setTo(255);
+
+    auto compute_total_distance = [&](const int y, const int x) -> float {
+        float total_distance = 0.0f;
+
+        for (int row = 0; row < img2.rows; row++) {
+            for (int col = 0; col < img2.cols; col++) {
+                if (img2.at<uchar>(row, col) == 255) {
+                    const int transformed_y = y + row;
+                    const int transformed_x = x + col;
+
+                    total_distance += img1_transform.at<float>(transformed_y, transformed_x);
+                }
+            }
+        }
+        return total_distance;
+    };
+
+    float best_total_distance = std::numeric_limits<float>::max();
+    int best_x = 0, best_y = 0;
+
+
+    for (int y = 0; y <= max_frame_y; y += step) {
+        for (int x = 0; x <= max_frame_x; x += step) {
+
+            const float total_distance = compute_total_distance(y, x);
+
+            if (total_distance < best_total_distance) {
+                best_x = x;
+                best_y = y;
+                best_total_distance = total_distance;
+            }
+        }
+    }
+
+    mask_img2.setTo(0);
+    mask_img2(Rect(best_x, best_y, img2.cols, img2.rows)).setTo(255);
+
+    Mat best_combined = Mat::zeros(matching_frame.size(), CV_8UC1);
+    img1.copyTo(best_combined(img_1_rect));
+    img2.copyTo(best_combined(Rect(best_x, best_y, img2.cols, img2.rows)));
+
+    L2_distance_transform(best_combined, minimal_distances);
 }
 
 
