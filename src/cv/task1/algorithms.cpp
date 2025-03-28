@@ -237,9 +237,8 @@ void algorithms::apply_morph_operation(const cv::Mat &morph_input, const int ker
 
     for (int row = 0; row < input_image.rows; row++) {
         for (int col = 0; col < input_image.cols; col++) {
-
-            int black = 0;
-            int white = 255;
+            constexpr int black = 0;
+            constexpr int white = 255;
 
             int new_center_pixel_color = (mode == MORPH_ERODE) ? white : black;
 
@@ -293,6 +292,48 @@ void algorithms::apply_morph_operation(const cv::Mat &morph_input, const int ker
 // Return: void
 //========================================================================================
 void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &transformed_image) {
+    using namespace cv;
+
+    constexpr int kernel_size = 5;
+    constexpr int radius = kernel_size / 2;
+    constexpr int black = 0;
+    constexpr int white = 255;
+
+    Mat input_image = source_image.clone();
+    Mat output_image = Mat::zeros(source_image.size(), CV_8UC1);
+
+    Mat border_image;
+    copyMakeBorder(source_image, border_image, radius, radius, radius, radius, BORDER_REFLECT);
+
+    auto compute_px_value = [&](const int row, const int col)-> uchar {
+        float min_dist = FLT_MAX;
+
+        for (int i = -radius; i <= radius; i++) {
+            for (int j = -radius; j <= radius; j++) {
+
+                if (border_image.at<uchar>(row + i + radius, col + j + radius) != black) continue;
+
+                const int dx = i;
+                const int dy = j;
+
+                float d = sqrt(dx * dx + dy * dy);
+
+                min_dist = min(min_dist, d);
+            }
+        }
+
+        min_dist = (min_dist == FLT_MAX) ? 0 : min(min_dist, 255.0f);
+        return min_dist;
+    };
+
+    for (int row = 0; row < input_image.rows; row++) {
+        for (int col = 0; col < input_image.cols; col++) {
+            if (const int px = input_image.at<uchar>(row, col); px != white) continue;
+
+            output_image.at<uchar>(row, col) = compute_px_value(row, col);
+        }
+    }
+    output_image.copyTo(transformed_image);
 }
 
 
@@ -309,7 +350,7 @@ void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &tra
 //          the total distance
 //        - identify the position of img2 with the minimum overall distance;
 //          store the according distance matrix in minimal_distances
-//
+
 //        - create a white mask at the position of img1 (mask_img1)
 //        - create a white mask at the position of img2 (mask_img2)
 //
