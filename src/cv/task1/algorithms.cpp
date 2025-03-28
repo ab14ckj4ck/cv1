@@ -194,6 +194,7 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
 //========================================================================================
 void algorithms::canny(const cv::Mat &filtered_image, const int weak_edge_threshold,
                        const int strong_edge_threshold, cv::Mat &edges) {
+    cv::Canny(filtered_image, edges, weak_edge_threshold, strong_edge_threshold);
 }
 
 
