@@ -88,20 +88,19 @@ void algorithms::compute_log_transform(const cv::Mat &blurred_image, cv::Mat &lo
     using namespace cv;
 
     Mat x;
-    blurred_image.convertTo(x, CV_32FC1);
+    blurred_image.convertTo(x, CV_64F);
 
     Mat log_x;
-    log(x + 1.0f, log_x);
+    log(x + 1.0, log_x);
 
     double min;
     double max;
 
     minMaxIdx(blurred_image, &min, &max);
 
-    Mat log_max;
-    log(1.0f + max, log_max);
+    const double log_max = log(1.0 + max);
 
-    const Mat y_of_x = (log_x / log_max) * 255.0f;
+    const Mat y_of_x = (log_x / log_max) * 255.0;
     y_of_x.convertTo(log_transform, CV_8UC1);
 }
 
@@ -137,12 +136,12 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
     constexpr auto radius = d / 2;
 
     Mat input_image;
-    log_transform.convertTo(input_image, CV_32FC1);
+    log_transform.copyTo(input_image);
 
     Mat bordered_image;
     copyMakeBorder(input_image, bordered_image, radius, radius, radius, radius, BORDER_REFLECT_101);
 
-    Mat output_image = Mat::zeros(input_image.size(), CV_32FC1);
+    Mat output_image = Mat::zeros(input_image.size(), CV_8UC1);
 
 
     for (int m = 0; m < log_transform.rows; m++) {
@@ -151,8 +150,8 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
             float w_mn = 0;
             float grf_sum = 0;
 
-            const float f_mn_float = bordered_image.at<float>(m + radius, n + radius);
-            const int f_mn = static_cast<int>(f_mn_float);
+            const uchar f_mn_float = bordered_image.at<uchar>(m + radius, n + radius);
+            const int f_mn = f_mn_float;
 
             for (int k = -radius; k <= radius; k++) {
                 for (int l = -radius; l <= radius; l++) {
@@ -164,8 +163,8 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                     const int g_in_brackets = (mk_sq + nl_sq) / (2 * sigma_s_sq);
                     const float g_exp = exp(-g_in_brackets);
 
-                    const float f_kl_float = bordered_image.at<float>(m + k + radius, n + l + radius);
-                    const int f_kl = static_cast<int>(f_kl_float);
+                    const uchar f_kl_float = bordered_image.at<uchar>(m + k + radius, n + l + radius);
+                    const int f_kl = (f_kl_float);
                     const int diff = f_mn - f_kl;
                     const int f_mn_kl_sq = diff * diff;
                     constexpr int sigma_r_sq = sigma_r * sigma_r;
@@ -174,18 +173,19 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                     const float r_exp = exp(-r_in_brackets);
 
                     w_mn += g_exp * r_exp;
-                    grf_sum += g_exp * r_exp * f_kl_float;
+                    grf_sum += g_exp * r_exp * f_kl;
                 }
             }
             if (w_mn > 0) {
-                output_image.at<float>(m, n) = (1.f / w_mn) * grf_sum - 0.5f;
+                const float h_mn = grf_sum / w_mn;
+                output_image.at<uchar>(m, n) = h_mn;
             } else {
-                output_image.at<float>(m, n) = static_cast<float>(f_mn) - 0.5f;
+                output_image.at<uchar>(m, n) = static_cast<uchar>(f_mn);
             }
 
         }
     }
-    output_image.convertTo(filtered_image, CV_8UC1);
+    output_image.copyTo(filtered_image);
 }
 
 
