@@ -135,14 +135,10 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
 
     constexpr auto radius = d / 2;
 
-    Mat input_image;
-    log_transform.copyTo(input_image);
-
     Mat bordered_image;
-    copyMakeBorder(input_image, bordered_image, radius, radius, radius, radius, BORDER_REFLECT_101);
+    copyMakeBorder(log_transform, bordered_image, radius, radius, radius, radius, BORDER_REFLECT_101);
 
-    Mat output_image = Mat::zeros(input_image.size(), CV_8UC1);
-
+    Mat output_image = Mat::zeros(log_transform.size(), CV_8UC1);
 
     for (int m = 0; m < log_transform.rows; m++) {
         for (int n = 0; n < log_transform.cols; n++) {
@@ -150,8 +146,7 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
             float w_mn = 0;
             float grf_sum = 0;
 
-            const uchar f_mn_float = bordered_image.at<uchar>(m + radius, n + radius);
-            const int f_mn = f_mn_float;
+            const uchar f_mn = bordered_image.at<uchar>(m + radius, n + radius);
 
             for (int k = -radius; k <= radius; k++) {
                 for (int l = -radius; l <= radius; l++) {
@@ -163,8 +158,7 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                     const int g_in_brackets = (mk_sq + nl_sq) / (2 * sigma_s_sq);
                     const float g_exp = exp(-g_in_brackets);
 
-                    const uchar f_kl_float = bordered_image.at<uchar>(m + k + radius, n + l + radius);
-                    const int f_kl = (f_kl_float);
+                    const uchar f_kl = bordered_image.at<uchar>(m + k + radius, n + l + radius);
                     const int diff = f_mn - f_kl;
                     const int f_mn_kl_sq = diff * diff;
                     constexpr int sigma_r_sq = sigma_r * sigma_r;
@@ -180,7 +174,7 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                 const float h_mn = grf_sum / w_mn;
                 output_image.at<uchar>(m, n) = h_mn;
             } else {
-                output_image.at<uchar>(m, n) = static_cast<uchar>(f_mn);
+                output_image.at<uchar>(m, n) = f_mn;
             }
 
         }
