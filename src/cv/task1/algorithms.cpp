@@ -31,7 +31,7 @@ void algorithms::compute_grayscale(const cv::Mat &input_image, cv::Mat &grayscal
             uchar const g = input_image.at<Vec3b>(row, col)[1];
             uchar const r = input_image.at<Vec3b>(row, col)[2];
 
-            const auto grey = R_FAC * r + G_FAC * g + B_FAC * b;
+            const auto grey = r * R_FAC + g * G_FAC + b * B_FAC;
 
             grayscale_image.at<uchar>(row, col) = static_cast<uchar>(grey);
         }
@@ -87,21 +87,20 @@ void algorithms::gaussian_blur(const cv::Mat &input_image, const int &kernel_siz
 void algorithms::compute_log_transform(const cv::Mat &blurred_image, cv::Mat &log_transform) {
     using namespace cv;
 
-    Mat x;
-    blurred_image.convertTo(x, CV_64F);
+    const Mat x = blurred_image.clone();
 
     Mat log_x;
-    log(x + 1.0, log_x);
+    log(x + 1, log_x);
 
     double min;
     double max;
 
     minMaxIdx(blurred_image, &min, &max);
 
-    const double log_max = log(1.0 + max);
+    const auto log_max = log(1 + max);
 
-    const Mat y_of_x = (log_x / log_max) * 255.0;
-    y_of_x.convertTo(log_transform, CV_8UC1);
+    const Mat y_of_x = (log_x / log_max) * 255;
+    log_transform = y_of_x.clone();
 }
 
 
@@ -136,13 +135,12 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
     constexpr auto radius = d / 2;
 
     Mat bordered_image;
-    copyMakeBorder(log_transform, bordered_image, radius, radius, radius, radius, BORDER_REFLECT_101);
+    copyMakeBorder(log_transform, bordered_image, radius, radius, radius, radius, BORDER_CONSTANT, Scalar(0, 0, 0));
 
-    Mat output_image = Mat::zeros(log_transform.size(), CV_8UC1);
+    Mat output_image = log_transform.clone();
 
     for (int m = 0; m < log_transform.rows; m++) {
         for (int n = 0; n < log_transform.cols; n++) {
-
             float w_mn = 0;
             float grf_sum = 0;
 
@@ -150,7 +148,6 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
 
             for (int k = -radius; k <= radius; k++) {
                 for (int l = -radius; l <= radius; l++) {
-
                     const int mk_sq = k * k;
                     const int nl_sq = l * l;
                     constexpr int sigma_s_sq = sigma_s * sigma_s;
@@ -170,16 +167,15 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                     grf_sum += g_exp * r_exp * f_kl;
                 }
             }
-            if (w_mn > 0) {
-                const float h_mn = grf_sum / w_mn;
-                output_image.at<uchar>(m, n) = h_mn;
+            if (w_mn > 0.0) {
+                double h_mn = (1.0 / w_mn) * grf_sum;
+                output_image.at<uchar>(m, n) = static_cast<uchar>(std::clamp(h_mn, 0.0, 255.0));
             } else {
                 output_image.at<uchar>(m, n) = f_mn;
             }
-
         }
     }
-    output_image.copyTo(filtered_image);
+    filtered_image = output_image.clone();
 }
 
 
