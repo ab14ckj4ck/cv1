@@ -168,8 +168,8 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
                 }
             }
             if (w_mn > 0.0) {
-                double h_mn = (1.0 / w_mn) * grf_sum;
-                output_image.at<uchar>(m, n) = static_cast<uchar>(std::clamp(h_mn, 0.0, 255.0));
+                float h_mn = grf_sum / w_mn;
+                output_image.at<uchar>(m, n) = static_cast<uchar>(std::clamp(h_mn, 0.0f, 255.0f));
             } else {
                 output_image.at<uchar>(m, n) = f_mn;
             }
@@ -223,6 +223,47 @@ void algorithms::canny(const cv::Mat &filtered_image, const int weak_edge_thresh
 //========================================================================================
 void algorithms::apply_morph_operation(const cv::Mat &morph_input, const int kernel_size,
                                        const cv::MorphTypes mode, cv::Mat &morphed_image) {
+    using namespace cv;
+
+    const int radius = kernel_size / 2;
+
+    const Mat input_image = morph_input.clone();
+    Mat output_image = input_image.clone();
+
+    Mat bordered_image;
+    copyMakeBorder(morph_input, bordered_image, radius, radius, radius, radius, BORDER_REFLECT);
+
+    if (mode != MORPH_ERODE && mode != MORPH_DILATE) return;
+
+    for (int row = 0; row < input_image.rows; row++) {
+        for (int col = 0; col < input_image.cols; col++) {
+
+            int black = 0;
+            int white = 255;
+
+            int new_center_pixel_color = (mode == MORPH_ERODE) ? white : black;
+
+            for (int i = -radius; i <= radius; i++) {
+                for (int j = -radius; j <= radius; j++) {
+                    const auto kernel_pixel = bordered_image.at<uchar>(row + i + radius, col + j + radius);
+                    if (mode == MORPH_ERODE) {
+                        if (kernel_pixel == black) {
+                            new_center_pixel_color = black;
+                            break;
+                        }
+                    } else {
+                        if (kernel_pixel == white) {
+                            new_center_pixel_color = white;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            output_image.at<uchar>(row, col) = new_center_pixel_color;
+        }
+    }
+    output_image.copyTo(morphed_image);
 }
 
 
