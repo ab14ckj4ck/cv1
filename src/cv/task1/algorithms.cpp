@@ -16,8 +16,7 @@
 //
 // return: void
 //========================================================================================
-void algorithms::compute_grayscale(const cv::Mat &input_image, cv::Mat &grayscale_image)
-{
+void algorithms::compute_grayscale(const cv::Mat &input_image, cv::Mat &grayscale_image) {
     using namespace cv;
 
     constexpr double R_FAC = 0.2989;
@@ -32,7 +31,7 @@ void algorithms::compute_grayscale(const cv::Mat &input_image, cv::Mat &grayscal
             uchar const g = input_image.at<Vec3b>(row, col)[1];
             uchar const r = input_image.at<Vec3b>(row, col)[2];
 
-            const auto grey = R_FAC * r + G_FAC * g + B_FAC * b;
+            const auto grey = r * R_FAC + g * G_FAC + b * B_FAC;
 
             grayscale_image.at<uchar>(row, col) = static_cast<uchar>(grey);
         }
@@ -58,8 +57,7 @@ void algorithms::compute_grayscale(const cv::Mat &input_image, cv::Mat &grayscal
 // return: void
 //========================================================================================
 void algorithms::gaussian_blur(const cv::Mat &input_image, const int &kernel_size,
-                               const float &sigma, cv::Mat &blurred_image)
-{
+                               const float &sigma, cv::Mat &blurred_image) {
     using namespace cv;
 
     const Mat one_d_kernel = getGaussianKernel(kernel_size, sigma);
@@ -86,27 +84,23 @@ void algorithms::gaussian_blur(const cv::Mat &input_image, const int &kernel_siz
 //
 // return: void
 //========================================================================================
-void algorithms::compute_log_transform(const cv::Mat &blurred_image, cv::Mat &log_transform)
-{
+void algorithms::compute_log_transform(const cv::Mat &blurred_image, cv::Mat &log_transform) {
     using namespace cv;
 
-    Mat x;
-    blurred_image.convertTo(x, CV_32FC1);
+    const Mat x = blurred_image.clone();
 
     Mat log_x;
-    log(x + 1.0f, log_x);
+    log(x + 1, log_x);
 
     double min;
     double max;
 
     minMaxIdx(blurred_image, &min, &max);
 
-    Mat log_max;
-    log(1.0f + max, log_max);
+    const auto log_max = log(1 + max);
 
-    const Mat y_of_x = (log_x / log_max) * 255.0f;
-    y_of_x.convertTo(log_transform, CV_8UC1);
-
+    const Mat y_of_x = (log_x / log_max) * 255;
+    log_transform = y_of_x.clone();
 }
 
 
@@ -130,13 +124,58 @@ void algorithms::compute_log_transform(const cv::Mat &blurred_image, cv::Mat &lo
 //
 // return: void
 //========================================================================================
-void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &filtered_image)
-{
+void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &filtered_image) {
     const int d = 5;
     const int sigma_s = 10;
     const int sigma_r = 10;
-    // Do not change the constants above! 
+    // Do not change the constants above!
 
+    using namespace cv;
+
+    constexpr auto radius = d / 2;
+
+    Mat bordered_image;
+    copyMakeBorder(log_transform, bordered_image, radius, radius, radius, radius, BORDER_CONSTANT, Scalar(0, 0, 0));
+
+    Mat output_image = log_transform.clone();
+
+    for (int m = 0; m < log_transform.rows; m++) {
+        for (int n = 0; n < log_transform.cols; n++) {
+            float w_mn = 0;
+            float grf_sum = 0;
+
+            const uchar f_mn = bordered_image.at<uchar>(m + radius, n + radius);
+
+            for (int k = -radius; k <= radius; k++) {
+                for (int l = -radius; l <= radius; l++) {
+                    const int mk_sq = k * k;
+                    const int nl_sq = l * l;
+                    constexpr int sigma_s_sq = sigma_s * sigma_s;
+
+                    const int g_in_brackets = (mk_sq + nl_sq) / (2 * sigma_s_sq);
+                    const float g_exp = exp(-g_in_brackets);
+
+                    const uchar f_kl = bordered_image.at<uchar>(m + k + radius, n + l + radius);
+                    const int diff = f_mn - f_kl;
+                    const int f_mn_kl_sq = diff * diff;
+                    constexpr int sigma_r_sq = sigma_r * sigma_r;
+
+                    const int r_in_brackets = f_mn_kl_sq / (2 * sigma_r_sq);
+                    const float r_exp = exp(-r_in_brackets);
+
+                    w_mn += g_exp * r_exp;
+                    grf_sum += g_exp * r_exp * f_kl;
+                }
+            }
+            if (w_mn > 0.0) {
+                double h_mn = (1.0 / w_mn) * grf_sum;
+                output_image.at<uchar>(m, n) = static_cast<uchar>(std::clamp(h_mn, 0.0, 255.0));
+            } else {
+                output_image.at<uchar>(m, n) = f_mn;
+            }
+        }
+    }
+    filtered_image = output_image.clone();
 }
 
 
@@ -153,9 +192,8 @@ void algorithms::apply_bilateral_filter(const cv::Mat &log_transform, cv::Mat &f
 // 
 // return: void
 //========================================================================================
-void algorithms::canny(const cv::Mat &filtered_image, const int weak_edge_threshold, 
-                       const int strong_edge_threshold, cv::Mat &edges)
-{
+void algorithms::canny(const cv::Mat &filtered_image, const int weak_edge_threshold,
+                       const int strong_edge_threshold, cv::Mat &edges) {
 }
 
 
@@ -182,9 +220,8 @@ void algorithms::canny(const cv::Mat &filtered_image, const int weak_edge_thresh
 //
 // return: void
 //========================================================================================
-void algorithms::apply_morph_operation(const cv::Mat &morph_input, const int kernel_size, 
-                                       const cv::MorphTypes mode, cv::Mat &morphed_image)
-{
+void algorithms::apply_morph_operation(const cv::Mat &morph_input, const int kernel_size,
+                                       const cv::MorphTypes mode, cv::Mat &morphed_image) {
 }
 
 
@@ -213,8 +250,7 @@ void algorithms::apply_morph_operation(const cv::Mat &morph_input, const int ker
 //
 // Return: void
 //========================================================================================
-void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &transformed_image)
-{
+void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &transformed_image) {
 }
 
 
@@ -251,9 +287,8 @@ void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &tra
 //
 // return: void
 //========================================================================================
-void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &matching_frame, const int step, 
-                              cv::Mat &minimal_distances, cv::Mat &mask_img1, cv::Mat &mask_img2)
-{
+void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &matching_frame, const int step,
+                              cv::Mat &minimal_distances, cv::Mat &mask_img1, cv::Mat &mask_img2) {
 }
 
 
@@ -280,9 +315,8 @@ void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat 
 //
 // return: void
 //========================================================================================
-void algorithms::blend_originals(const cv::Mat &original_img1, const cv::Mat &original_img2, 
-                                 const cv::Mat &mask_img1, const cv::Mat &mask_img2, cv::Mat &blended_original)
-{
+void algorithms::blend_originals(const cv::Mat &original_img1, const cv::Mat &original_img2,
+                                 const cv::Mat &mask_img1, const cv::Mat &mask_img2, cv::Mat &blended_original) {
 }
 
 
@@ -303,9 +337,8 @@ void algorithms::blend_originals(const cv::Mat &original_img1, const cv::Mat &or
 //
 // return: void
 //========================================================================================
-void algorithms::compute_gradient(const cv::Mat &source_image, cv::Mat &gradient_x, 
-                                  cv::Mat &gradient_y, cv::Mat &gradient_abs)
-{
+void algorithms::compute_gradient(const cv::Mat &source_image, cv::Mat &gradient_x,
+                                  cv::Mat &gradient_y, cv::Mat &gradient_abs) {
 }
 
 
@@ -344,10 +377,8 @@ void algorithms::compute_gradient(const cv::Mat &source_image, cv::Mat &gradient
 // return: void
 //========================================================================================
 void algorithms::non_maxima_suppression(const cv::Mat &gradient_image, const cv::Mat &gradient_x,
-                                        const cv::Mat &gradient_y, cv::Mat &non_max_sup)
-{
+                                        const cv::Mat &gradient_y, cv::Mat &non_max_sup) {
     float RAD2DEG = (180.0 / CV_PI);
-
 }
 
 
@@ -371,7 +402,6 @@ void algorithms::non_maxima_suppression(const cv::Mat &gradient_image, const cv:
 //
 // return: void
 //========================================================================================
-void algorithms::hysteresis(const cv::Mat &non_max_sup, const int threshold_min, 
-                            const int threshold_max, cv::Mat &output_image)
-{
+void algorithms::hysteresis(const cv::Mat &non_max_sup, const int threshold_min,
+                            const int threshold_max, cv::Mat &output_image) {
 }
