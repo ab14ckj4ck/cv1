@@ -386,7 +386,6 @@ void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat 
     float best_sum = std::numeric_limits<float>::max();
     int best_x = 0;
     int best_y = 0;
-    int count = 0;
 
     for (int row = 0; row <= max_frame_y; row += step) {
         for (int col = 0; col <= max_frame_x; col += step) {
@@ -400,7 +399,8 @@ void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat 
 
             Scalar sum = cv::sum(distances);
 
-            if (best_sum > sum[0]) {
+            if (sum[0] < best_sum) {
+                distances.copyTo(minimal_distances);
                 best_sum = sum[0];
                 best_x = col;
                 best_y = row;
@@ -415,12 +415,6 @@ void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat 
 
     Rect rect_img2(best_x, best_y, img2.cols, img2.rows);
     mask_img2(rect_img2).setTo(255);
-
-    Mat best_combined = Mat::zeros(matching_frame.size(), CV_8UC1);
-    img1.copyTo(best_combined(rect_img1));
-    img2.copyTo(best_combined(rect_img2));
-
-    L2_distance_transform(best_combined, minimal_distances);
 }
 
 
