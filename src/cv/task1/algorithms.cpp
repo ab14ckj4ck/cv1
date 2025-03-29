@@ -310,7 +310,6 @@ void algorithms::L2_distance_transform(const cv::Mat &source_image, cv::Mat &tra
 
         for (int i = -radius; i <= radius; i++) {
             for (int j = -radius; j <= radius; j++) {
-
                 if (border_image.at<uchar>(row + i + radius, col + j + radius) != black) continue;
 
                 const int dx = i;
@@ -443,6 +442,48 @@ void algorithms::match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat 
 //========================================================================================
 void algorithms::blend_originals(const cv::Mat &original_img1, const cv::Mat &original_img2,
                                  const cv::Mat &mask_img1, const cv::Mat &mask_img2, cv::Mat &blended_original) {
+    using namespace cv;
+
+    auto find_start_coordinates = [&] (Mat mask) -> Point {
+        for (int y = 0; y < mask.rows; y++) {
+            for (int x = 0; x < mask.cols; x++) {
+                if (mask.at<uchar>(y, x) == 255) {
+                    return {x, y};
+                }
+            }
+        }
+        return {-1, -1};
+    };
+
+    Mat cutout_mask_img2 = mask_img2.clone();
+
+    for (int y = 0; y < cutout_mask_img2.rows; y++) {
+        for (int x = 0; x < cutout_mask_img2.cols; x++) {
+            if (mask_img1.at<uchar>(y, x) == 255 && mask_img2.at<uchar>(y, x) == 255) {
+                cutout_mask_img2.at<uchar>(y, x) = 0;
+            }
+        }
+    }
+
+    Point start_img1 = find_start_coordinates(mask_img1);
+    Rect rect_img1(start_img1.x, start_img1.y, original_img1.cols, original_img1.rows);
+    Mat framed_img = Mat::zeros(mask_img1.size(), CV_8UC3);
+    original_img1.copyTo(framed_img(rect_img1));
+
+    Point start_img2 = find_start_coordinates(mask_img2);
+    Rect rect_img2(start_img2.x, start_img2.y, original_img2.cols, original_img2.rows);
+    Mat temp_img2 = Mat::zeros(mask_img2.size(), CV_8UC3);
+    original_img2.copyTo(temp_img2(rect_img2));
+
+    for (int y = 0; y < framed_img.rows; y++) {
+        for (int x = 0; x < framed_img.cols; x++) {
+            if (cutout_mask_img2.at<uchar>(y, x) == 255) {
+                framed_img.at<Vec3b>(y, x) = temp_img2.at<Vec3b>(y, x);
+            }
+        }
+    }
+
+    framed_img.copyTo(blended_original);
 }
 
 

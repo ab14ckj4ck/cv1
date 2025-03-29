@@ -27,7 +27,7 @@ class algorithms
     static void match_cracks(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &matching_frame, const int step, 
                              cv::Mat &minimal_distances, cv::Mat &mask_img1, cv::Mat &mask_img2);
 
-    static void blend_originals(const cv::Mat &original_img1, const cv::Mat &original_img2, 
+    static void blend_originals(const cv::Mat &original_img1, const cv::Mat &original_img2,
                                 const cv::Mat &mask_img1, const cv::Mat &mask_img2, cv::Mat &blended_original);
 
     static void compute_gradient(const cv::Mat &source_image, cv::Mat &gradient_x, cv::Mat &gradient_y, cv::Mat &gradient_abs);
